@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual Environment
+.venv/
+venv/
+
+# VS Code
+.vscode/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment Variables
+.env
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Generated Files
+reports/generated/
+audits/generated/
+
+# Models
+models/*.pkl
+models/*.joblib
+
+# Logs
+*.log
+logs/
+
+# Streamlit Cache
+.streamlit/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
