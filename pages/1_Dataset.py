@@ -9,6 +9,8 @@ from src.dataset.profiler import (
     get_column_details
 )
 
+from src.storage.file_manager import save_uploaded_dataset
+
 
 st.title("Dataset Upload & Validation")
 
@@ -38,6 +40,17 @@ if uploaded_file:
 
 
             st.session_state["dataset"] = df
+
+
+            saved_path = save_uploaded_dataset(
+                df,
+                uploaded_file.name
+            )
+
+
+            st.info(
+                f"Dataset saved: {saved_path}"
+            )
 
 
             st.subheader("Dataset Preview")

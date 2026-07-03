@@ -39,3 +39,11 @@ logs/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# User uploaded datasets
+data/raw/*
+data/processed/*
+
+# Keep folders
+!data/raw/.gitkeep
+!data/processed/.gitkeep
