@@ -9,103 +9,172 @@ from src.dataset.profiler import (
     get_column_details
 )
 
-from src.storage.file_manager import save_uploaded_dataset
+from src.storage.file_manager import (
+    save_uploaded_dataset
+)
 
 
-st.title("Dataset Upload & Validation")
+st.title(
+    "Dataset Upload & Validation"
+)
 
 
-uploaded_file = upload_csv()
+# Function to display dataset information
+def display_dataset_info(df):
+
+    st.subheader(
+        "Dataset Preview"
+    )
+
+    st.dataframe(
+        df.head()
+    )
 
 
-if uploaded_file:
+    overview = get_dataset_overview(
+        df
+    )
 
 
-    try:
-
-        df = pd.read_csv(uploaded_file)
-
-
-        is_valid, message = validate_dataset(df)
+    st.subheader(
+        "Dataset Overview"
+    )
 
 
-        if not is_valid:
-
-            st.error(message)
-
-
-        else:
-
-            st.success(message)
+    col1, col2, col3, col4 = st.columns(
+        4
+    )
 
 
-            st.session_state["dataset"] = df
+    col1.metric(
+        "Rows",
+        overview["rows"]
+    )
 
 
-            saved_path = save_uploaded_dataset(
-                df,
-                uploaded_file.name
-            )
+    col2.metric(
+        "Columns",
+        overview["columns"]
+    )
 
 
-            st.info(
-                f"Dataset saved: {saved_path}"
-            )
+    col3.metric(
+        "Missing Values",
+        overview["missing_values"]
+    )
 
 
-            st.subheader("Dataset Preview")
+    col4.metric(
+        "Duplicate Rows",
+        overview["duplicate_rows"]
+    )
 
 
-            st.dataframe(
-                df.head()
-            )
+    st.subheader(
+        "Column Details"
+    )
 
 
-            overview = get_dataset_overview(df)
+    st.dataframe(
+        get_column_details(df)
+    )
 
 
-            st.subheader("Dataset Overview")
+
+# If dataset already exists in session
+if "dataset" in st.session_state:
 
 
-            col1, col2, col3, col4 = st.columns(4)
+    st.success(
+        "Dataset already loaded"
+    )
 
 
-            col1.metric(
-                "Rows",
-                overview["rows"]
-            )
+    if "dataset_name" in st.session_state:
 
-
-            col2.metric(
-                "Columns",
-                overview["columns"]
-            )
-
-
-            col3.metric(
-                "Missing Values",
-                overview["missing_values"]
-            )
-
-
-            col4.metric(
-                "Duplicate Rows",
-                overview["duplicate_rows"]
-            )
-
-
-            st.subheader(
-                "Column Details"
-            )
-
-
-            st.dataframe(
-                get_column_details(df)
-            )
-
-
-    except Exception:
-
-        st.error(
-            "Error processing dataset."
+        st.info(
+            f"Current dataset: {st.session_state['dataset_name']}"
         )
+
+
+    df = st.session_state["dataset"]
+
+
+    display_dataset_info(
+        df
+    )
+
+
+
+# First time upload
+else:
+
+
+    uploaded_file = upload_csv()
+
+
+    if uploaded_file:
+
+
+        try:
+
+
+            df = pd.read_csv(
+                uploaded_file
+            )
+
+
+            is_valid, message = validate_dataset(
+                df
+            )
+
+
+            if not is_valid:
+
+
+                st.error(
+                    message
+                )
+
+
+            else:
+
+
+                st.success(
+                    message
+                )
+
+
+                # Store dataframe
+                st.session_state["dataset"] = df
+
+
+                # Store filename
+                st.session_state["dataset_name"] = (
+                    uploaded_file.name
+                )
+
+
+                # Save physically
+                saved_path = save_uploaded_dataset(
+                    df,
+                    uploaded_file.name
+                )
+
+
+                st.info(
+                    f"Dataset saved: {saved_path}"
+                )
+
+
+                display_dataset_info(
+                    df
+                )
+
+
+        except Exception as error:
+
+
+            st.error(
+                f"Error processing dataset: {error}"
+            )
