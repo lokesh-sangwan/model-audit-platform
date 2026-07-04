@@ -21,95 +21,143 @@ else:
     df = st.session_state["dataset"]
 
 
-    st.subheader(
-        "Dataset Preview"
-    )
+    if st.session_state.get("preprocessing_done"):
 
 
-    st.dataframe(
-        df.head()
-    )
+        st.success(
+            "Preprocessing already completed"
+        )
 
 
-    target_column = st.selectbox(
-        "Select Target Column",
-        df.columns
-    )
+        st.info(
+            f"Target Column: {st.session_state['target_column']}"
+        )
 
 
-    if st.button(
-        "Run Preprocessing"
-    ):
+        col1, col2 = st.columns(2)
 
 
-        try:
+        col1.metric(
+            "Training Samples",
+            st.session_state["X_train_processed"].shape[0]
+        )
 
 
-            (
-                X_train,
-                X_test,
-                y_train,
-                y_test
-            ) = split_dataset(
-                df,
-                target_column
-            )
+        col2.metric(
+            "Testing Samples",
+            st.session_state["X_test_processed"].shape[0]
+        )
 
 
-            (
-                X_train_processed,
-                X_test_processed,
-                preprocessor
-            ) = preprocess_data(
-                X_train,
-                X_test
-            )
+        rerun = st.button(
+            "Run Preprocessing Again"
+        )
 
 
-            st.session_state["X_train_processed"] = (
-                X_train_processed
-            )
+    else:
 
 
-            st.session_state["X_test_processed"] = (
-                X_test_processed
-            )
+        rerun = True
 
 
-            st.session_state["y_train"] = y_train
+
+    if rerun:
 
 
-            st.session_state["y_test"] = y_test
+        st.subheader(
+            "Dataset Preview"
+        )
 
 
-            st.session_state["preprocessor"] = (
-                preprocessor
-            )
+        st.dataframe(
+            df.head()
+        )
 
 
-            st.success(
-                "Preprocessing completed successfully"
-            )
+        target_column = st.selectbox(
+
+            "Select Target Column",
+
+            df.columns
+
+        )
 
 
-            col1, col2 = st.columns(2)
+        if st.button(
+            "Run Preprocessing"
+        ):
 
 
-            col1.metric(
-                "Training Samples",
-                X_train_processed.shape[0]
-            )
+            try:
 
 
-            col2.metric(
-                "Testing Samples",
-                X_test_processed.shape[0]
-            )
+                (
+                    X_train,
+                    X_test,
+                    y_train,
+                    y_test
+                ) = split_dataset(
+                    df,
+                    target_column
+                )
 
 
-        except Exception as error:
+
+                (
+                    X_train_processed,
+                    X_test_processed,
+                    preprocessor
+                ) = preprocess_data(
+                    X_train,
+                    X_test
+                )
 
 
-            st.error(
-                f"Preprocessing failed: {error}"
-            )
+
+                st.session_state["X_train_processed"] = (
+                    X_train_processed
+                )
+
+
+                st.session_state["X_test_processed"] = (
+                    X_test_processed
+                )
+
+
+                st.session_state["y_train"] = y_train
+
+
+                st.session_state["y_test"] = y_test
+
+
+                st.session_state["preprocessor"] = (
+                    preprocessor
+                )
+
+
+                st.session_state["target_column"] = (
+                    target_column
+                )
+
+
+                st.session_state["preprocessing_done"] = True
+
+
+
+                st.success(
+                    "Preprocessing completed successfully"
+                )
+
+
+                st.rerun()
+
+
+
+            except Exception as error:
+
+
+                st.error(
+
+                    f"Preprocessing failed: {error}"
+
+                )

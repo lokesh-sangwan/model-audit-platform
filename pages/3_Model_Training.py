@@ -1,15 +1,12 @@
 import streamlit as st
 
-
 from src.training.model_factory import get_model
 from src.training.trainer import train_model
-
 
 
 st.title(
     "Model Training"
 )
-
 
 
 if "X_train_processed" not in st.session_state:
@@ -20,8 +17,20 @@ if "X_train_processed" not in st.session_state:
     )
 
 
-
 else:
+
+
+    if "trained_model" in st.session_state:
+
+
+        st.success(
+            "Model already trained"
+        )
+
+
+        st.info(
+            f"Current Model: {st.session_state['model_name']}"
+        )
 
 
     st.subheader(
@@ -34,17 +43,12 @@ else:
         "Model",
 
         [
-
             "Logistic Regression",
-
             "Decision Tree",
-
             "Random Forest"
-
         ]
 
     )
-
 
 
     if st.button(
@@ -55,7 +59,6 @@ else:
         model = get_model(
             model_name
         )
-
 
 
         trained_model = train_model(
@@ -69,7 +72,6 @@ else:
         )
 
 
-
         st.session_state["trained_model"] = (
             trained_model
         )
@@ -79,6 +81,16 @@ else:
             model_name
         )
 
+
+        # Remove old evaluation if model changes
+        if "evaluation_metrics" in st.session_state:
+
+            del st.session_state["evaluation_metrics"]
+
+
+        if "predictions" in st.session_state:
+
+            del st.session_state["predictions"]
 
 
         st.success(

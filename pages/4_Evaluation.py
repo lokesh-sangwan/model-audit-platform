@@ -14,34 +14,131 @@ st.title(
 )
 
 
+
+def display_results(
+    metrics
+):
+
+    col1, col2 = st.columns(2)
+
+
+    col1.metric(
+
+        "Accuracy",
+
+        round(
+            metrics["accuracy"],
+            3
+        )
+
+    )
+
+
+    col2.metric(
+
+        "Precision",
+
+        round(
+            metrics["precision"],
+            3
+        )
+
+    )
+
+
+    col3, col4 = st.columns(2)
+
+
+    col3.metric(
+
+        "Recall",
+
+        round(
+            metrics["recall"],
+            3
+        )
+
+    )
+
+
+    col4.metric(
+
+        "F1 Score",
+
+        round(
+            metrics["f1_score"],
+            3
+        )
+
+    )
+
+
+
 if "trained_model" not in st.session_state:
+
 
     st.warning(
         "Please train a model first."
     )
 
 
+
 else:
 
-    st.subheader(
-        "Evaluate Model Performance"
-    )
+
+    if "evaluation_metrics" in st.session_state:
+
+
+        st.success(
+            "Existing evaluation loaded"
+        )
+
+
+        display_results(
+
+            st.session_state["evaluation_metrics"]
+
+        )
+
+
+        figure = create_confusion_matrix_plot(
+
+            st.session_state["y_test"],
+
+            st.session_state["predictions"]
+
+        )
+
+
+        st.plotly_chart(
+
+            figure,
+
+            use_container_width=True
+
+        )
+
 
 
     if st.button(
         "Run Evaluation"
     ):
 
+
         (
             metrics,
             predictions
         ) = evaluate_classifier(
 
+
             st.session_state["trained_model"],
+
 
             st.session_state["X_test_processed"],
 
+
             st.session_state["y_test"]
+
 
         )
 
@@ -61,74 +158,23 @@ else:
         )
 
 
-        col1, col2 = st.columns(2)
-
-
-        col1.metric(
-
-            "Accuracy",
-
-            round(
-                metrics["accuracy"],
-                3
-            )
-
+        display_results(
+            metrics
         )
 
 
-        col2.metric(
+        figure = create_confusion_matrix_plot(
 
-            "Precision",
+            st.session_state["y_test"],
 
-            round(
-                metrics["precision"],
-                3
-            )
+            predictions
 
-        )
-
-
-        col3, col4 = st.columns(2)
-
-
-        col3.metric(
-
-            "Recall",
-
-            round(
-                metrics["recall"],
-                3
-            )
-
-        )
-
-
-        col4.metric(
-
-            "F1 Score",
-
-            round(
-                metrics["f1_score"],
-                3
-            )
-
-        )
-
-
-        confusion_matrix_plot = (
-            create_confusion_matrix_plot(
-
-                st.session_state["y_test"],
-
-                predictions
-
-            )
         )
 
 
         st.plotly_chart(
 
-            confusion_matrix_plot,
+            figure,
 
             use_container_width=True
 
