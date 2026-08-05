@@ -83,15 +83,8 @@ else:
 
 
         # Remove old evaluation if model changes
-        if "evaluation_metrics" in st.session_state:
-
-            del st.session_state["evaluation_metrics"]
-
-
-        if "predictions" in st.session_state:
-
-            del st.session_state["predictions"]
-
+        st.session_state.pop("evaluation", None)
+        st.session_state.pop("predictions", None)
 
         st.success(
 

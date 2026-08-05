@@ -2,17 +2,13 @@ import streamlit as st
 
 
 def upload_csv():
-    """
-    Creates a CSV upload component.
 
-    Returns:
-        Uploaded file object
-    """
+    if "uploader_key" not in st.session_state:
+        st.session_state["uploader_key"] = 0
 
-    uploaded_file = st.file_uploader(
-        label="Upload your dataset (CSV)",
+    return st.file_uploader(
+        "Upload your dataset (CSV)",
         type=["csv"],
-        help="Upload a CSV dataset for model auditing"
+        help="Upload a CSV dataset for model auditing",
+        key=f"dataset_uploader_{st.session_state['uploader_key']}"
     )
-
-    return uploaded_file

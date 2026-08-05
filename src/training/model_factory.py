@@ -36,6 +36,11 @@ def get_model(
     }
 
 
-    return models.get(
-        model_name
-    )
+    if model_name not in models:
+
+        raise ValueError(
+            "Unsupported model selected"
+        )
+
+
+    return models[model_name]
