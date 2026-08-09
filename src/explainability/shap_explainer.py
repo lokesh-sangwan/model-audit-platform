@@ -15,8 +15,11 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 
 
+MAX_EXPLANATION_SAMPLES = 50
+
+
 def _to_dense(data):
-    """Convert sparse data to a dense array."""
+    """Convert sparse data to a dense NumPy-compatible array."""
 
     if sparse.issparse(data):
         return data.toarray()
@@ -43,7 +46,7 @@ def _get_feature_names(preprocessor, number_of_features):
 
 
 def _get_explainer(model, background_data):
-    """Select the appropriate SHAP explainer."""
+    """Select the appropriate SHAP explainer for the model."""
 
     if isinstance(
         model,
@@ -73,13 +76,9 @@ def _select_class_shap_values(
     """
     Select SHAP values for one classification output.
 
-    For binary/multiclass classifiers, recent SHAP versions
-    may return values with shape:
-
-        samples × features × classes
-
-    We select one class so that the summary plot represents
-    the contribution toward that class.
+    For binary/multiclass models, SHAP may return
+    values with a class dimension. We select the
+    positive class for our classification explanation.
     """
 
     if isinstance(shap_values, list):
@@ -97,16 +96,10 @@ def _select_class_shap_values(
 
             selected_values = values[:, :, class_index]
 
-            if shap_values.base_values is not None:
+            base_values = shap_values.base_values
 
-                base_values = shap_values.base_values
-
-                if base_values.ndim == 2:
-
-                    base_values = base_values[:, class_index]
-
-            else:
-                base_values = None
+            if base_values is not None and base_values.ndim == 2:
+                base_values = base_values[:, class_index]
 
             return shap.Explanation(
                 values=selected_values,
@@ -132,27 +125,86 @@ def generate_shap_summary(
     preprocessor
 ):
     """
-    Generate a standard SHAP summary plot for a
-    classification model.
+    Generate a SHAP summary explanation.
 
-    The plot shows how each feature contributes
-    toward the selected class.
+    To keep the application responsive, SHAP is calculated
+    on a reproducible sample of the test set rather than
+    the entire test set.
     """
 
-    X_train_dense = _to_dense(X_train)
-    X_test_dense = _to_dense(X_test)
+    # -------------------------------------------------
+    # Select a manageable sample BEFORE expensive work
+    # -------------------------------------------------
 
-    X_train_dense = X_train_dense.astype(float)
+    if hasattr(X_test, "shape"):
+        test_sample_size = min(
+            MAX_EXPLANATION_SAMPLES,
+            X_test.shape[0]
+        )
+    else:
+        test_sample_size = MAX_EXPLANATION_SAMPLES
+
+    if test_sample_size < X_test.shape[0]:
+
+        if hasattr(X_test, "iloc"):
+            X_test_sample = X_test.iloc[
+                :test_sample_size
+            ]
+        else:
+            X_test_sample = X_test[
+                :test_sample_size
+            ]
+
+    else:
+        X_test_sample = X_test
+
+    # -------------------------------------------------
+    # Convert only the required data to dense format
+    # -------------------------------------------------
+
+    X_test_dense = _to_dense(
+        X_test_sample
+    )
+
     X_test_dense = X_test_dense.astype(float)
+
+    # Training data is only needed for LinearExplainer
+    # and generic fallback explainers.
+    if isinstance(
+        model,
+        (
+            RandomForestClassifier,
+            DecisionTreeClassifier
+        )
+    ):
+
+        X_train_display = None
+
+    else:
+
+        X_train_dense = _to_dense(
+            X_train
+        )
+
+        X_train_dense = X_train_dense.astype(float)
+
+        train_feature_names = _get_feature_names(
+            preprocessor,
+            X_train_dense.shape[1]
+        )
+
+        X_train_display = pd.DataFrame(
+            X_train_dense,
+            columns=train_feature_names
+        )
+
+    # -------------------------------------------------
+    # Feature names
+    # -------------------------------------------------
 
     feature_names = _get_feature_names(
         preprocessor,
         X_test_dense.shape[1]
-    )
-
-    X_train_display = pd.DataFrame(
-        X_train_dense,
-        columns=feature_names
     )
 
     X_test_display = pd.DataFrame(
@@ -160,12 +212,19 @@ def generate_shap_summary(
         columns=feature_names
     )
 
+    # -------------------------------------------------
+    # Create explainer
+    # -------------------------------------------------
+
     explainer = _get_explainer(
         model,
         X_train_display
     )
 
-    # Generate SHAP explanation.
+    # -------------------------------------------------
+    # Generate SHAP values
+    # -------------------------------------------------
+
     if isinstance(
         model,
         (
@@ -185,13 +244,19 @@ def generate_shap_summary(
             X_test_display
         )
 
-    # For classification, select the positive class.
+    # -------------------------------------------------
+    # Select positive-class explanation
+    # -------------------------------------------------
+
     shap_values = _select_class_shap_values(
         raw_shap_values,
         class_index=1
     )
 
-    # Create the actual SHAP summary plot.
+    # -------------------------------------------------
+    # Generate summary plot
+    # -------------------------------------------------
+
     plt.close("all")
 
     shap.summary_plot(
@@ -211,7 +276,10 @@ def generate_shap_summary(
 
     figure.tight_layout()
 
-    # Convert the actual figure to PNG bytes.
+    # -------------------------------------------------
+    # Convert figure to PNG bytes
+    # -------------------------------------------------
+
     image_buffer = io.BytesIO()
 
     figure.savefig(
@@ -227,4 +295,8 @@ def generate_shap_summary(
 
     plt.close(figure)
 
-    return shap_values, image_bytes
+    return (
+        shap_values,
+        image_bytes,
+        test_sample_size
+    )

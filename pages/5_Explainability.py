@@ -9,14 +9,13 @@ st.title("Model Explainability")
 
 
 # =====================================================
-# CLEAN UP OLD SHAP STATE
+# CLEAN OLD SHAP STATE
 # =====================================================
 
-# Previous versions of the application stored a
-# Matplotlib Figure in "shap_image". That object is
-# no longer used.
-
-st.session_state.pop("shap_image", None)
+st.session_state.pop(
+    "shap_image",
+    None
+)
 
 
 # =====================================================
@@ -59,6 +58,14 @@ if (
         "SHAP explanation generated successfully."
     )
 
+    if "shap_sample_size" in st.session_state:
+
+        st.caption(
+            "Explanation generated using "
+            f"{st.session_state['shap_sample_size']} "
+            "test samples."
+        )
+
     st.image(
         st.session_state["shap_image_bytes"],
         use_container_width=True
@@ -72,18 +79,19 @@ if (
             "Generating SHAP explanation..."
         ):
 
-            shap_values, image_bytes = (
-                generate_shap_summary(
+            (
+                shap_values,
+                image_bytes,
+                sample_size
+            ) = generate_shap_summary(
 
-                    st.session_state["trained_model"],
+                st.session_state["trained_model"],
 
-                    st.session_state["X_train_processed"],
+                st.session_state["X_train_processed"],
 
-                    st.session_state["X_test_processed"],
+                st.session_state["X_test_processed"],
 
-                    st.session_state["preprocessor"]
-
-                )
+                st.session_state["preprocessor"]
             )
 
             st.session_state["shap_values"] = (
@@ -94,28 +102,27 @@ if (
                 image_bytes
             )
 
+            st.session_state["shap_sample_size"] = (
+                sample_size
+            )
+
         st.rerun()
 
 
 # =====================================================
-# NO EXISTING EXPLANATION
+# FIRST RUN
 # =====================================================
 
 else:
 
-    # Remove any incomplete/stale SHAP state.
-    st.session_state.pop(
-        "shap_values",
-        None
-    )
-
-    st.session_state.pop(
-        "shap_image_bytes",
-        None
-    )
-
     st.info(
         "No explainability report has been generated yet."
+    )
+
+    st.write(
+        "SHAP will analyze a representative sample "
+        "of the test data to keep the application "
+        "responsive."
     )
 
     if st.button(
@@ -123,21 +130,23 @@ else:
     ):
 
         with st.spinner(
-            "Generating SHAP explanation..."
+            "Generating SHAP explanation for "
+            "a representative test sample..."
         ):
 
-            shap_values, image_bytes = (
-                generate_shap_summary(
+            (
+                shap_values,
+                image_bytes,
+                sample_size
+            ) = generate_shap_summary(
 
-                    st.session_state["trained_model"],
+                st.session_state["trained_model"],
 
-                    st.session_state["X_train_processed"],
+                st.session_state["X_train_processed"],
 
-                    st.session_state["X_test_processed"],
+                st.session_state["X_test_processed"],
 
-                    st.session_state["preprocessor"]
-
-                )
+                st.session_state["preprocessor"]
             )
 
             st.session_state["shap_values"] = (
@@ -146,6 +155,10 @@ else:
 
             st.session_state["shap_image_bytes"] = (
                 image_bytes
+            )
+
+            st.session_state["shap_sample_size"] = (
+                sample_size
             )
 
         st.rerun()
