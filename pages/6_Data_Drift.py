@@ -48,9 +48,9 @@ st.info(
     This module compares the training dataset with the
     held-out test dataset to simulate a data-drift analysis.
 
-    In a production environment, the current dataset would
-    normally come from incoming production data rather than
-    the test split.
+    Identifier-like, highly-missing, and high-cardinality
+    categorical features are excluded from the main drift
+    calculation and reported separately.
     """
 )
 
@@ -76,7 +76,7 @@ with st.expander(
     st.write(
         f"Overall drift threshold: "
         f"{OVERALL_DRIFT_THRESHOLD:.0%} "
-        "of features"
+        "of usable features"
     )
 
 
@@ -144,13 +144,13 @@ else:
         )
 
     # --------------------------------------------------------
-    # Metrics
+    # Summary metrics
     # --------------------------------------------------------
 
     col1, col2, col3 = st.columns(3)
 
     col1.metric(
-        "Total Features",
+        "Usable Features",
         report["total_features"]
     )
 
@@ -178,59 +178,67 @@ else:
         "feature_results"
     ].copy()
 
-    display_results = results.copy()
+    if results.empty:
 
-    display_results[
-        "drift_score"
-    ] = display_results[
-        "drift_score"
-    ].round(4)
+        st.warning(
+            "No usable features were available for drift analysis."
+        )
 
-    display_results[
-        "p_value"
-    ] = display_results[
-        "p_value"
-    ].round(4)
+    else:
 
-    display_results[
-        "drifted"
-    ] = display_results[
-        "drifted"
-    ].map(
-        {
-            True: "⚠️ Drifted",
-            False: "✅ Stable"
-        }
-    )
+        display_results = results.copy()
 
-    st.dataframe(
-        display_results,
-        use_container_width=True
-    )
+        display_results[
+            "drift_score"
+        ] = display_results[
+            "drift_score"
+        ].round(4)
+
+        display_results[
+            "p_value"
+        ] = display_results[
+            "p_value"
+        ].round(4)
+
+        display_results[
+            "drifted"
+        ] = display_results[
+            "drifted"
+        ].map(
+            {
+                True: "⚠️ Drifted",
+                False: "✅ Stable"
+            }
+        )
+
+        st.dataframe(
+            display_results,
+            use_container_width=True
+        )
 
     # --------------------------------------------------------
     # Drifted feature summary
     # --------------------------------------------------------
 
-    drifted_features = results[
-        results["drifted"]
-    ]
-
     st.subheader(
         "Drift Summary"
     )
 
+    drifted_features = results[
+        results["drifted"]
+    ]
+
     if drifted_features.empty:
 
         st.success(
-            "No individual features crossed the configured "
+            "No usable features crossed the configured "
             "drift thresholds."
         )
 
     else:
 
         st.warning(
-            f"{len(drifted_features)} feature(s) "
+            f"{len(drifted_features)} usable feature(s) "
             "showed potential distribution drift."
         )
 
@@ -246,11 +254,38 @@ else:
             use_container_width=True
         )
 
-    st.divider()
+    # --------------------------------------------------------
+    # Excluded feature analysis
+    # --------------------------------------------------------
+
+    excluded_features = report[
+        "excluded_features"
+    ]
+
+    if not excluded_features.empty:
+
+        st.divider()
+
+        st.subheader(
+            "Features Excluded from Drift Analysis"
+        )
+
+        st.caption(
+            "These features are not included in the overall "
+            "drift score because they are identifier-like, "
+            "high-cardinality, or highly missing."
+        )
+
+        st.dataframe(
+            excluded_features,
+            use_container_width=True
+        )
 
     # --------------------------------------------------------
     # Re-run
     # --------------------------------------------------------
+
+    st.divider()
 
     if st.button(
         "🔄 Re-run Drift Analysis"

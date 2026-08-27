@@ -8,13 +8,75 @@ from scipy.stats import ks_2samp
 # CONFIGURATION
 # ============================================================
 
+HIGH_CARDINALITY_THRESHOLD = 0.5
+HIGH_MISSINGNESS_THRESHOLD = 0.5
+
 NUMERIC_DRIFT_THRESHOLD = 0.10
 CATEGORICAL_DRIFT_THRESHOLD = 0.10
+
 OVERALL_DRIFT_THRESHOLD = 0.20
 
 
 # ============================================================
-# NUMERIC DRIFT
+# FEATURE QUALITY CHECKS
+# ============================================================
+
+def _is_identifier_column(column_name):
+    """
+    Determines whether a column is likely to be an identifier.
+    """
+
+    name = (
+        str(column_name)
+        .lower()
+        .replace("_", "")
+        .replace(" ", "")
+    )
+
+    identifier_keywords = [
+        "id",
+        "identifier"
+    ]
+
+    return any(
+        keyword in name
+        for keyword in identifier_keywords
+    )
+
+
+def _is_high_cardinality(
+    data,
+    column
+):
+    """
+    Determines whether a categorical column has a high
+    proportion of unique values.
+    """
+
+    unique_ratio = (
+        data[column].nunique(dropna=True)
+        / max(len(data), 1)
+    )
+
+    return unique_ratio >= HIGH_CARDINALITY_THRESHOLD
+
+
+def _is_high_missingness(
+    data,
+    column
+):
+    """
+    Determines whether a column has a high percentage
+    of missing values.
+    """
+
+    missing_ratio = data[column].isna().mean()
+
+    return missing_ratio >= HIGH_MISSINGNESS_THRESHOLD
+
+
+# ============================================================
+# NUMERICAL DRIFT
 # ============================================================
 
 def calculate_numeric_drift(
@@ -22,24 +84,19 @@ def calculate_numeric_drift(
     current
 ):
     """
-    Calculates distribution drift for a numerical feature
-    using the Kolmogorov-Smirnov (KS) statistic.
-
-    Args:
-        reference: Reference/training feature values.
-        current: Current/test feature values.
-
-    Returns:
-        Dictionary containing drift statistics.
+    Calculates numerical distribution drift using the
+    Kolmogorov-Smirnov statistic.
     """
 
     reference = pd.Series(reference).dropna()
     current = pd.Series(current).dropna()
 
     if len(reference) == 0 or len(current) == 0:
+
         return {
             "metric": "KS Statistic",
             "score": np.nan,
+            "p_value": np.nan,
             "drifted": False
         }
 
@@ -67,16 +124,8 @@ def calculate_categorical_drift(
     current
 ):
     """
-    Calculates distribution drift for a categorical feature
-    using Total Variation Distance.
-
-    Total Variation Distance measures how different the
-    category distributions are between two datasets.
-
-    Range:
-
-        0.0 -> identical distributions
-        1.0 -> completely different distributions
+    Calculates categorical distribution drift using
+    Total Variation Distance.
     """
 
     reference = pd.Series(reference).fillna(
@@ -88,11 +137,15 @@ def calculate_categorical_drift(
     )
 
     reference_distribution = (
-        reference.value_counts(normalize=True)
+        reference.value_counts(
+            normalize=True
+        )
     )
 
     current_distribution = (
-        current.value_counts(normalize=True)
+        current.value_counts(
+            normalize=True
+        )
     )
 
     categories = set(
@@ -126,10 +179,98 @@ def calculate_categorical_drift(
     return {
         "metric": "Total Variation Distance",
         "score": float(score),
+        "p_value": np.nan,
         "drifted": bool(
             score >= CATEGORICAL_DRIFT_THRESHOLD
         )
     }
+
+
+# ============================================================
+# FEATURE PROFILING
+# ============================================================
+
+def profile_features(
+    reference_data
+):
+    """
+    Identifies features that should participate in drift
+    analysis and features that should be excluded because
+    they are identifiers, highly missing, or high-cardinality.
+
+    Returns:
+        usable_features
+        excluded_features
+    """
+
+    usable_features = []
+    excluded_features = []
+
+    for column in reference_data.columns:
+
+        # ----------------------------------------------------
+        # Identifier
+        # ----------------------------------------------------
+
+        if _is_identifier_column(column):
+
+            excluded_features.append({
+                "feature": column,
+                "reason": "Identifier column"
+            })
+
+            continue
+
+        # ----------------------------------------------------
+        # High-cardinality categorical
+        # ----------------------------------------------------
+
+        if (
+            not pd.api.types.is_numeric_dtype(
+                reference_data[column]
+            )
+            and _is_high_cardinality(
+                reference_data,
+                column
+            )
+        ):
+
+            excluded_features.append({
+                "feature": column,
+                "reason": "High-cardinality categorical feature"
+            })
+
+            continue
+
+        # ----------------------------------------------------
+        # Highly missing categorical
+        # ----------------------------------------------------
+
+        if (
+            not pd.api.types.is_numeric_dtype(
+                reference_data[column]
+            )
+            and _is_high_missingness(
+                reference_data,
+                column
+            )
+        ):
+
+            excluded_features.append({
+                "feature": column,
+                "reason": "High missingness"
+            })
+
+            continue
+
+        usable_features.append(
+            column
+        )
+
+    return (
+        usable_features,
+        excluded_features
+    )
 
 
 # ============================================================
@@ -141,16 +282,18 @@ def detect_data_drift(
     current_data
 ):
     """
-    Compares reference and current datasets feature by feature.
+    Performs feature-level and overall drift analysis.
 
-    Numerical columns use the KS statistic.
+    Only model-relevant features are included in the drift
+    calculation.
 
-    Categorical columns use Total Variation Distance.
-
-    Returns:
-        A dictionary containing per-feature results and
-        overall drift statistics.
+    Identifier-like, highly-missing, and high-cardinality
+    categorical features are reported separately.
     """
+
+    # --------------------------------------------------------
+    # Find common columns
+    # --------------------------------------------------------
 
     common_columns = [
         column
@@ -158,12 +301,36 @@ def detect_data_drift(
         if column in current_data.columns
     ]
 
+    reference_common = reference_data[
+        common_columns
+    ]
+
+    # --------------------------------------------------------
+    # Profile features
+    # --------------------------------------------------------
+
+    (
+        usable_features,
+        excluded_features
+    ) = profile_features(
+        reference_common
+    )
+
     results = []
 
-    for column in common_columns:
+    # --------------------------------------------------------
+    # Analyze usable features
+    # --------------------------------------------------------
 
-        reference_column = reference_data[column]
-        current_column = current_data[column]
+    for column in usable_features:
+
+        reference_column = (
+            reference_data[column]
+        )
+
+        current_column = (
+            current_data[column]
+        )
 
         # ----------------------------------------------------
         # Numerical feature
@@ -188,10 +355,7 @@ def detect_data_drift(
 
                 "drift_score": result["score"],
 
-                "p_value": result.get(
-                    "p_value",
-                    np.nan
-                ),
+                "p_value": result["p_value"],
 
                 "drifted": result["drifted"]
 
@@ -218,7 +382,7 @@ def detect_data_drift(
 
                 "drift_score": result["score"],
 
-                "p_value": np.nan,
+                "p_value": result["p_value"],
 
                 "drifted": result["drifted"]
 
@@ -227,6 +391,10 @@ def detect_data_drift(
     results_df = pd.DataFrame(
         results
     )
+
+    # --------------------------------------------------------
+    # Overall drift calculation
+    # --------------------------------------------------------
 
     if len(results_df) == 0:
 
@@ -257,6 +425,10 @@ def detect_data_drift(
     return {
 
         "feature_results": results_df,
+
+        "excluded_features": pd.DataFrame(
+            excluded_features
+        ),
 
         "drifted_features": drifted_features,
 
