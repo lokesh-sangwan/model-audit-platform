@@ -4,6 +4,11 @@ from src.audit.audit_report import (
     generate_audit_report
 )
 
+from src.history.audit_history import (
+    save_audit_record,
+    audit_already_saved
+)
+
 
 st.title(
     "ML Audit Report"
@@ -294,7 +299,45 @@ for reason in recommendation[
 
 
 # ============================================================
-# REPORT DATA
+# SAVE AUDIT
+# ============================================================
+
+st.divider()
+
+st.subheader(
+    "Audit History"
+)
+
+if audit_already_saved(
+    report
+):
+
+    st.success(
+        "This audit has already been saved to history."
+    )
+
+else:
+
+    if st.button(
+        "Save Audit to History"
+    ):
+
+        audit_id = save_audit_record(
+            report
+        )
+
+        st.session_state[
+            "current_audit_id"
+        ] = audit_id
+
+        st.success(
+            f"Audit saved successfully. "
+            f"Audit ID: {audit_id}"
+        )
+
+
+# ============================================================
+# COMPLETE AUDIT DATA
 # ============================================================
 
 with st.expander(

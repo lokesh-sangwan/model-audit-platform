@@ -1,0 +1,36 @@
+[
+    {
+        "audit_id": "20260827233851050987",
+        "audit_report": {
+            "audit_metadata": {
+                "dataset_name": "Titanic-Dataset.csv",
+                "model_name": "Logistic Regression",
+                "generated_at": "2026-08-27T23:38:32"
+            },
+            "model_performance": {
+                "accuracy": 0.8100558659217877,
+                "precision": 0.8091625969233472,
+                "recall": 0.8100558659217877,
+                "f1_score": 0.8091929317716401
+            },
+            "data_drift": {
+                "total_features": 7,
+                "drifted_features": 0,
+                "drift_percentage": 0.0,
+                "overall_drift": false
+            },
+            "explainability": {
+                "available": true
+            },
+            "deployment_recommendation": {
+                "decision": "DEPLOY",
+                "severity": "Ready",
+                "reasons": [
+                    "All evaluation metrics meet the deployment threshold.",
+                    "Data drift is below the monitoring threshold.",
+                    "Model explainability is available."
+                ]
+            }
+        }
+    }
+]
