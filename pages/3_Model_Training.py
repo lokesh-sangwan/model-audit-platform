@@ -85,6 +85,7 @@ else:
         # Remove old evaluation if model changes
         st.session_state.pop("evaluation", None)
         st.session_state.pop("predictions", None)
+        st.session_state.pop("deployment_decision", None)
 
         st.success(
 

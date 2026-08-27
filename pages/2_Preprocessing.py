@@ -200,6 +200,11 @@ def run_preprocessing():
         None
     )
 
+    st.session_state.pop(
+        "deployment_decision",
+        None
+    )
+
 
 # ============================================================
 # ALREADY PREPROCESSED
