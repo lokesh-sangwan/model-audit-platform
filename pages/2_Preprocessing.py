@@ -75,6 +75,147 @@ target_column = st.selectbox(
 
 
 # ============================================================
+# PROBLEM TYPE
+# ============================================================
+
+st.subheader(
+    "Machine Learning Problem Type"
+)
+
+problem_type = st.radio(
+    "Select the type of prediction problem",
+    [
+        "Classification",
+        "Regression"
+    ],
+    horizontal=True
+)
+
+
+if problem_type == "Classification":
+
+    st.caption(
+        "Use Classification when the target represents "
+        "discrete classes or categories."
+    )
+
+else:
+
+    st.caption(
+        "Use Regression when the target is a continuous "
+        "numerical value, such as price, salary, or demand."
+    )
+
+
+# ============================================================
+# TARGET INFORMATION
+# ============================================================
+
+target_data = df[target_column]
+
+target_dtype = target_data.dtype
+
+unique_values = target_data.nunique(
+    dropna=True
+)
+
+st.write(
+    f"**Selected target:** `{target_column}`"
+)
+
+col1, col2 = st.columns(2)
+
+col1.write(
+    f"**Data type:** `{target_dtype}`"
+)
+
+col2.write(
+    f"**Unique values:** `{unique_values}`"
+)
+
+
+# ============================================================
+# TARGET VALIDATION
+# ============================================================
+
+target_valid = True
+
+target_error = None
+
+
+# ------------------------------------------------------------
+# Missing target values
+# ------------------------------------------------------------
+
+if target_data.isna().any():
+
+    target_valid = False
+
+    target_error = (
+        "The selected target column contains missing "
+        "values. Please handle or remove missing target "
+        "values before training."
+    )
+
+
+# ------------------------------------------------------------
+# Classification validation
+# ------------------------------------------------------------
+
+elif problem_type == "Classification":
+
+    if unique_values < 2:
+
+        target_valid = False
+
+        target_error = (
+            "Classification requires at least two target "
+            "classes."
+        )
+
+    elif unique_values >= len(target_data) * 0.5:
+
+        target_valid = False
+
+        target_error = (
+            "The selected target appears to contain too "
+            "many unique values for classification. "
+            "If this is a continuous numerical target, "
+            "select Regression instead."
+        )
+
+
+# ------------------------------------------------------------
+# Regression validation
+# ------------------------------------------------------------
+
+elif problem_type == "Regression":
+
+    if not (
+        target_data.dtype.kind
+        in "iuf"
+    ):
+
+        target_valid = False
+
+        target_error = (
+            "Regression requires a numerical target "
+            "column."
+        )
+
+
+# ============================================================
+# DISPLAY TARGET VALIDATION
+# ============================================================
+
+if not target_valid:
+
+    st.error(
+        target_error
+    )
+
+
+# ============================================================
 # PREPROCESSING FUNCTION
 # ============================================================
 
@@ -152,6 +293,14 @@ def run_preprocessing():
     ] = target_column
 
     # --------------------------------------------------------
+    # Store problem type
+    # --------------------------------------------------------
+
+    st.session_state[
+        "problem_type"
+    ] = problem_type
+
+    # --------------------------------------------------------
     # Clear downstream artifacts
     # --------------------------------------------------------
 
@@ -205,6 +354,11 @@ def run_preprocessing():
         None
     )
 
+    st.session_state.pop(
+        "audit_report",
+        None
+    )
+
 
 # ============================================================
 # ALREADY PREPROCESSED
@@ -219,6 +373,15 @@ if "X_train_processed" in st.session_state:
     if st.button(
         "🔄 Re-run Preprocessing"
     ):
+
+        if not target_valid:
+
+            st.error(
+                "Please select a valid target and problem "
+                "type before running preprocessing."
+            )
+
+            st.stop()
 
         run_preprocessing()
 
@@ -242,6 +405,15 @@ else:
     if st.button(
         "Run Preprocessing"
     ):
+
+        if not target_valid:
+
+            st.error(
+                "Please correct the target selection "
+                "before running preprocessing."
+            )
+
+            st.stop()
 
         run_preprocessing()
 

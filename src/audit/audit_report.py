@@ -13,6 +13,9 @@ def generate_audit_report(
     Builds a structured audit report from all completed
     model-audit stages.
 
+    Supports both classification and regression
+    evaluation metrics.
+
     Args:
         dataset_name: Name of the evaluated dataset.
         model_name: Name of the trained model.
@@ -31,21 +34,34 @@ def generate_audit_report(
         {}
     )
 
-    report = {
 
-        "audit_metadata": {
+    # ========================================================
+    # DETERMINE EVALUATION TYPE
+    # ========================================================
 
-            "dataset_name": dataset_name,
+    if "r2_score" in metrics:
 
-            "model_name": model_name,
+        model_performance = {
 
-            "generated_at": datetime.now().isoformat(
-                timespec="seconds"
+            "mae": metrics.get(
+                "mae"
+            ),
+
+            "rmse": metrics.get(
+                "rmse"
+            ),
+
+            "r2_score": metrics.get(
+                "r2_score"
             )
 
-        },
+        }
 
-        "model_performance": {
+        problem_type = "Regression"
+
+    else:
+
+        model_performance = {
 
             "accuracy": metrics.get(
                 "accuracy"
@@ -63,7 +79,34 @@ def generate_audit_report(
                 "f1_score"
             )
 
+        }
+
+        problem_type = "Classification"
+
+
+    # ========================================================
+    # BUILD REPORT
+    # ========================================================
+
+    report = {
+
+        "audit_metadata": {
+
+            "dataset_name": dataset_name,
+
+            "model_name": model_name,
+
+            "problem_type": problem_type,
+
+            "generated_at": datetime.now().isoformat(
+                timespec="seconds"
+            )
+
         },
+
+
+        "model_performance": model_performance,
+
 
         "data_drift": {
 
@@ -89,11 +132,13 @@ def generate_audit_report(
 
         },
 
+
         "explainability": {
 
             "available": explainability_available
 
         },
+
 
         "deployment_recommendation": {
 
@@ -113,5 +158,6 @@ def generate_audit_report(
         }
 
     }
+
 
     return report

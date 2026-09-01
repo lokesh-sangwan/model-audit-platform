@@ -42,6 +42,16 @@ if missing_keys:
 
 
 # ============================================================
+# PROBLEM TYPE
+# ============================================================
+
+problem_type = st.session_state.get(
+    "problem_type",
+    "Classification"
+)
+
+
+# ============================================================
 # CURRENT MODEL
 # ============================================================
 
@@ -53,6 +63,11 @@ if "model_name" in st.session_state:
     )
 
 
+st.info(
+    f"Machine Learning Problem: **{problem_type}**"
+)
+
+
 # ============================================================
 # DECISION RULES
 # ============================================================
@@ -61,38 +76,81 @@ with st.expander(
     "Decision criteria"
 ):
 
-    st.write(
-        "### Deploy"
-    )
+    if problem_type == "Classification":
 
-    st.write(
-        f"All evaluation metrics ≥ "
-        f"{DEPLOY_THRESHOLD:.0%}, "
-        f"drift < {DRIFT_MONITOR_THRESHOLD:.0%}, "
-        "and explainability available."
-    )
+        st.write(
+            "### Deploy"
+        )
 
-    st.write(
-        "### Monitor"
-    )
+        st.write(
+            f"All evaluation metrics ≥ "
+            f"{DEPLOY_THRESHOLD:.0%}, "
+            f"drift < {DRIFT_MONITOR_THRESHOLD:.0%}, "
+            "and explainability available."
+        )
 
-    st.write(
-        f"Metrics between "
-        f"{MONITOR_THRESHOLD:.0%} and "
-        f"{DEPLOY_THRESHOLD:.0%}, "
-        f"or drift ≥ {DRIFT_MONITOR_THRESHOLD:.0%}, "
-        "or explainability is unavailable."
-    )
+        st.write(
+            "### Monitor"
+        )
 
-    st.write(
-        "### Block"
-    )
+        st.write(
+            f"Metrics between "
+            f"{MONITOR_THRESHOLD:.0%} and "
+            f"{DEPLOY_THRESHOLD:.0%}, "
+            f"or drift ≥ {DRIFT_MONITOR_THRESHOLD:.0%}, "
+            "or explainability is unavailable."
+        )
 
-    st.write(
-        f"Any metric < {MONITOR_THRESHOLD:.0%}, "
-        f"or drift ≥ {DRIFT_BLOCK_THRESHOLD:.0%}, "
-        "or required audit information is missing."
-    )
+        st.write(
+            "### Block"
+        )
+
+        st.write(
+            f"Any metric < {MONITOR_THRESHOLD:.0%}, "
+            f"or drift ≥ {DRIFT_BLOCK_THRESHOLD:.0%}, "
+            "or required audit information is missing."
+        )
+
+    else:
+
+        st.write(
+            "### Deploy"
+        )
+
+        st.write(
+            f"R² ≥ {DEPLOY_THRESHOLD:.2f}, "
+            f"drift < {DRIFT_MONITOR_THRESHOLD:.0%}, "
+            "and explainability available."
+        )
+
+        st.write(
+            "### Monitor"
+        )
+
+        st.write(
+            f"R² between "
+            f"{MONITOR_THRESHOLD:.2f} and "
+            f"{DEPLOY_THRESHOLD:.2f}, "
+            f"or drift ≥ {DRIFT_MONITOR_THRESHOLD:.0%}, "
+            "or explainability is unavailable."
+        )
+
+        st.write(
+            "### Block"
+        )
+
+        st.write(
+            f"R² < {MONITOR_THRESHOLD:.2f}, "
+            f"or drift ≥ {DRIFT_BLOCK_THRESHOLD:.0%}, "
+            "or required audit information is missing."
+        )
+
+        st.caption(
+            "MAE and RMSE are reported for regression "
+            "evaluation but are not used as universal "
+            "deployment thresholds because their values "
+            "depend on the target's scale."
+        )
 
 
 # ============================================================
@@ -133,7 +191,9 @@ if "deployment_decision" not in st.session_state:
                     "drift_report"
                 ],
 
-                explainability_available
+                explainability_available,
+
+                problem_type
 
             )
 
@@ -158,6 +218,7 @@ else:
         "decision"
     ]
 
+
     # --------------------------------------------------------
     # Main decision
     # --------------------------------------------------------
@@ -165,6 +226,7 @@ else:
     st.subheader(
         "Final Recommendation"
     )
+
 
     if decision_name == "DEPLOY":
 
@@ -184,6 +246,7 @@ else:
             "🔴 BLOCK"
         )
 
+
     # --------------------------------------------------------
     # Severity
     # --------------------------------------------------------
@@ -194,6 +257,7 @@ else:
     )
 
     st.divider()
+
 
     # --------------------------------------------------------
     # Model metrics
@@ -207,29 +271,53 @@ else:
         "evaluation"
     ]["metrics"]
 
-    col1, col2 = st.columns(2)
 
-    col1.metric(
-        "Accuracy",
-        f"{metrics['accuracy']:.3f}"
-    )
+    if problem_type == "Classification":
 
-    col2.metric(
-        "Precision",
-        f"{metrics['precision']:.3f}"
-    )
+        col1, col2 = st.columns(2)
 
-    col3, col4 = st.columns(2)
+        col1.metric(
+            "Accuracy",
+            f"{metrics['accuracy']:.3f}"
+        )
 
-    col3.metric(
-        "Recall",
-        f"{metrics['recall']:.3f}"
-    )
+        col2.metric(
+            "Precision",
+            f"{metrics['precision']:.3f}"
+        )
 
-    col4.metric(
-        "F1 Score",
-        f"{metrics['f1_score']:.3f}"
-    )
+
+        col3, col4 = st.columns(2)
+
+        col3.metric(
+            "Recall",
+            f"{metrics['recall']:.3f}"
+        )
+
+        col4.metric(
+            "F1 Score",
+            f"{metrics['f1_score']:.3f}"
+        )
+
+    else:
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric(
+            "MAE",
+            f"{metrics['mae']:.3f}"
+        )
+
+        col2.metric(
+            "RMSE",
+            f"{metrics['rmse']:.3f}"
+        )
+
+        col3.metric(
+            "R² Score",
+            f"{metrics['r2_score']:.3f}"
+        )
+
 
     # --------------------------------------------------------
     # Drift
@@ -243,7 +331,9 @@ else:
         "drift_report"
     ]
 
+
     col1, col2 = st.columns(2)
+
 
     col1.metric(
         "Drifted Features",
@@ -252,10 +342,12 @@ else:
         ]
     )
 
+
     col2.metric(
         "Drift Percentage",
         f"{drift_report['drift_percentage']:.1%}"
     )
+
 
     # --------------------------------------------------------
     # Explainability
@@ -264,6 +356,7 @@ else:
     st.subheader(
         "Explainability"
     )
+
 
     if explainability_available:
 
@@ -277,6 +370,7 @@ else:
             "SHAP explanation has not been generated."
         )
 
+
     # --------------------------------------------------------
     # Decision reasons
     # --------------------------------------------------------
@@ -284,6 +378,7 @@ else:
     st.subheader(
         "Decision Reasoning"
     )
+
 
     for reason in decision[
         "reasons"
@@ -293,11 +388,13 @@ else:
             f"• {reason}"
         )
 
+
     # --------------------------------------------------------
     # Re-run
     # --------------------------------------------------------
 
     st.divider()
+
 
     if st.button(
         "🔄 Recalculate Recommendation"
@@ -317,7 +414,9 @@ else:
                     "drift_report"
                 ],
 
-                explainability_available
+                explainability_available,
+
+                problem_type
 
             )
 

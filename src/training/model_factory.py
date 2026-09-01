@@ -1,13 +1,24 @@
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import (
+    LogisticRegression,
+    LinearRegression
+)
+
+from sklearn.tree import (
+    DecisionTreeClassifier,
+    DecisionTreeRegressor
+)
+
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    RandomForestRegressor
+)
 
 
 def get_model(
     model_name: str
 ):
     """
-    Creates ML model based on user choice.
+    Creates an ML model based on user choice.
 
     Args:
         model_name: selected algorithm
@@ -16,20 +27,36 @@ def get_model(
         sklearn model object
     """
 
-
     models = {
+
+        # ====================================================
+        # CLASSIFICATION MODELS
+        # ====================================================
 
         "Logistic Regression": LogisticRegression(
             max_iter=1000
         ),
 
-
         "Decision Tree": DecisionTreeClassifier(
             random_state=42
         ),
 
-
         "Random Forest": RandomForestClassifier(
+            random_state=42
+        ),
+
+
+        # ====================================================
+        # REGRESSION MODELS
+        # ====================================================
+
+        "Linear Regression": LinearRegression(),
+
+        "Decision Tree Regressor": DecisionTreeRegressor(
+            random_state=42
+        ),
+
+        "Random Forest Regressor": RandomForestRegressor(
             random_state=42
         )
 

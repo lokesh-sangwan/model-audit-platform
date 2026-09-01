@@ -10,15 +10,21 @@ DRIFT_BLOCK_THRESHOLD = 0.50
 
 
 # ============================================================
-# PERFORMANCE EVALUATION
+# CLASSIFICATION PERFORMANCE EVALUATION
 # ============================================================
 
-def evaluate_model_performance(metrics):
+def evaluate_classification_performance(metrics):
     """
-    Evaluates model performance against configured thresholds.
+    Evaluates classification model performance.
+
+    Uses:
+        Accuracy
+        Precision
+        Recall
+        F1 Score
 
     Returns:
-        Dictionary containing the performance status,
+        Dictionary containing performance status,
         failed metrics, and critical metrics.
     """
 
@@ -39,6 +45,7 @@ def evaluate_model_performance(metrics):
         )
 
         if value is None:
+
             critical_metrics.append(
                 metric_name
             )
@@ -64,17 +71,94 @@ def evaluate_model_performance(metrics):
 
 
 # ============================================================
+# REGRESSION PERFORMANCE EVALUATION
+# ============================================================
+
+def evaluate_regression_performance(metrics):
+    """
+    Evaluates regression model performance.
+
+    R² is used as the primary deployment-readiness
+    performance metric because MAE and RMSE are
+    scale-dependent and cannot have universal thresholds
+    across arbitrary datasets.
+
+    Returns:
+        Dictionary containing performance status,
+        failed metrics, and critical metrics.
+    """
+
+    r2_score = metrics.get(
+        "r2_score"
+    )
+
+    failed_metrics = []
+    critical_metrics = []
+
+    if r2_score is None:
+
+        critical_metrics.append(
+            "r2_score"
+        )
+
+    elif r2_score < MONITOR_THRESHOLD:
+
+        critical_metrics.append(
+            "r2_score"
+        )
+
+    elif r2_score < DEPLOY_THRESHOLD:
+
+        failed_metrics.append(
+            "r2_score"
+        )
+
+    return {
+        "failed_metrics": failed_metrics,
+        "critical_metrics": critical_metrics
+    }
+
+
+# ============================================================
+# PERFORMANCE EVALUATION
+# ============================================================
+
+def evaluate_model_performance(
+    metrics,
+    problem_type="Classification"
+):
+    """
+    Evaluates model performance according to
+    the selected machine learning problem type.
+    """
+
+    if problem_type == "Regression":
+
+        return evaluate_regression_performance(
+            metrics
+        )
+
+    return evaluate_classification_performance(
+        metrics
+    )
+
+
+# ============================================================
 # MAIN DECISION FUNCTION
 # ============================================================
 
 def make_deployment_decision(
     evaluation,
     drift_report,
-    explainability_available
+    explainability_available,
+    problem_type="Classification"
 ):
     """
-    Generates a deployment recommendation using model
-    performance, data drift, and explainability availability.
+    Generates a deployment recommendation using:
+
+        - Model performance
+        - Data drift
+        - Explainability availability
 
     Possible decisions:
 
@@ -97,6 +181,7 @@ def make_deployment_decision(
             "severity": "Critical"
         }
 
+
     if not drift_report:
 
         return {
@@ -107,14 +192,18 @@ def make_deployment_decision(
             "severity": "Critical"
         }
 
+
     metrics = evaluation.get(
         "metrics",
         {}
     )
 
+
     performance = evaluate_model_performance(
-        metrics
+        metrics,
+        problem_type
     )
+
 
     failed_metrics = performance[
         "failed_metrics"
@@ -123,6 +212,7 @@ def make_deployment_decision(
     critical_metrics = performance[
         "critical_metrics"
     ]
+
 
     # --------------------------------------------------------
     # Read drift information
@@ -133,19 +223,33 @@ def make_deployment_decision(
         0.0
     )
 
+
     # --------------------------------------------------------
     # BLOCK conditions
     # --------------------------------------------------------
 
     if critical_metrics:
 
+        if problem_type == "Regression":
+
+            threshold_description = (
+                f"R² is below the critical threshold "
+                f"of {MONITOR_THRESHOLD:.2f}."
+            )
+
+        else:
+
+            threshold_description = (
+                "One or more evaluation metrics are below "
+                f"the critical threshold of "
+                f"{MONITOR_THRESHOLD:.0%}."
+            )
+
+
         reasons = [
-
-            "One or more evaluation metrics are below "
-            f"the critical threshold of "
-            f"{MONITOR_THRESHOLD:.0%}."
-
+            threshold_description
         ]
+
 
         reasons.append(
             "Critical metrics: "
@@ -153,6 +257,7 @@ def make_deployment_decision(
                 critical_metrics
             )
         )
+
 
         return {
 
@@ -163,6 +268,7 @@ def make_deployment_decision(
             "severity": "Critical"
 
         }
+
 
     if drift_percentage >= DRIFT_BLOCK_THRESHOLD:
 
@@ -183,23 +289,37 @@ def make_deployment_decision(
 
         }
 
+
     # --------------------------------------------------------
     # MONITOR conditions
     # --------------------------------------------------------
 
     monitor_reasons = []
 
+
     if failed_metrics:
 
-        monitor_reasons.append(
+        if problem_type == "Regression":
 
-            "The following metrics are below the "
-            f"{DEPLOY_THRESHOLD:.0%} deployment threshold: "
-            + ", ".join(
-                failed_metrics
+            monitor_reasons.append(
+
+                "R² is below the "
+                f"{DEPLOY_THRESHOLD:.2f} deployment threshold."
+
             )
 
-        )
+        else:
+
+            monitor_reasons.append(
+
+                "The following metrics are below the "
+                f"{DEPLOY_THRESHOLD:.0%} deployment threshold: "
+                + ", ".join(
+                    failed_metrics
+                )
+
+            )
+
 
     if drift_percentage >= DRIFT_MONITOR_THRESHOLD:
 
@@ -210,6 +330,7 @@ def make_deployment_decision(
 
         )
 
+
     if not explainability_available:
 
         monitor_reasons.append(
@@ -217,6 +338,7 @@ def make_deployment_decision(
             "Model explainability has not been generated."
 
         )
+
 
     if monitor_reasons:
 
@@ -230,6 +352,7 @@ def make_deployment_decision(
 
         }
 
+
     # --------------------------------------------------------
     # DEPLOY
     # --------------------------------------------------------
@@ -240,8 +363,10 @@ def make_deployment_decision(
 
         "reasons": [
 
-            "All evaluation metrics meet the deployment "
-            "threshold.",
+            (
+                "All required model performance criteria "
+                "meet the deployment threshold."
+            ),
 
             "Data drift is below the monitoring threshold.",
 
