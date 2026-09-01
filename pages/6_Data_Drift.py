@@ -7,6 +7,10 @@ from src.drift.drift_detector import (
     OVERALL_DRIFT_THRESHOLD
 )
 
+from utils.session_manager import (
+    reset_from_drift
+)
+
 
 st.title(
     "Data Drift Detection"
@@ -90,6 +94,7 @@ if "drift_report" not in st.session_state:
         "No drift analysis has been generated yet."
     )
 
+
     if st.button(
         "Generate Drift Analysis"
     ):
@@ -110,9 +115,11 @@ if "drift_report" not in st.session_state:
 
             )
 
-            st.session_state[
-                "drift_report"
-            ] = report
+
+        st.session_state[
+            "drift_report"
+        ] = report
+
 
         st.rerun()
 
@@ -126,6 +133,7 @@ else:
     report = st.session_state[
         "drift_report"
     ]
+
 
     # --------------------------------------------------------
     # Overall status
@@ -143,28 +151,34 @@ else:
             "✅ No significant overall data drift detected."
         )
 
+
     # --------------------------------------------------------
     # Summary metrics
     # --------------------------------------------------------
 
     col1, col2, col3 = st.columns(3)
 
+
     col1.metric(
         "Usable Features",
         report["total_features"]
     )
+
 
     col2.metric(
         "Drifted Features",
         report["drifted_features"]
     )
 
+
     col3.metric(
         "Drift Percentage",
         f"{report['drift_percentage']:.1%}"
     )
 
+
     st.divider()
+
 
     # --------------------------------------------------------
     # Feature-level results
@@ -174,9 +188,11 @@ else:
         "Feature-level Drift"
     )
 
+
     results = report[
         "feature_results"
     ].copy()
+
 
     if results.empty:
 
@@ -188,17 +204,20 @@ else:
 
         display_results = results.copy()
 
+
         display_results[
             "drift_score"
         ] = display_results[
             "drift_score"
         ].round(4)
 
+
         display_results[
             "p_value"
         ] = display_results[
             "p_value"
         ].round(4)
+
 
         display_results[
             "drifted"
@@ -211,10 +230,12 @@ else:
             }
         )
 
+
         st.dataframe(
             display_results,
             use_container_width=True
         )
+
 
     # --------------------------------------------------------
     # Drifted feature summary
@@ -224,9 +245,11 @@ else:
         "Drift Summary"
     )
 
+
     drifted_features = results[
         results["drifted"]
     ]
+
 
     if drifted_features.empty:
 
@@ -242,6 +265,7 @@ else:
             "showed potential distribution drift."
         )
 
+
         st.dataframe(
             drifted_features[
                 [
@@ -254,6 +278,7 @@ else:
             use_container_width=True
         )
 
+
     # --------------------------------------------------------
     # Excluded feature analysis
     # --------------------------------------------------------
@@ -262,13 +287,16 @@ else:
         "excluded_features"
     ]
 
+
     if not excluded_features.empty:
 
         st.divider()
 
+
         st.subheader(
             "Features Excluded from Drift Analysis"
         )
+
 
         st.caption(
             "These features are not included in the overall "
@@ -276,16 +304,19 @@ else:
             "high-cardinality, or highly missing."
         )
 
+
         st.dataframe(
             excluded_features,
             use_container_width=True
         )
+
 
     # --------------------------------------------------------
     # Re-run
     # --------------------------------------------------------
 
     st.divider()
+
 
     if st.button(
         "🔄 Re-run Drift Analysis"
@@ -307,8 +338,21 @@ else:
 
             )
 
-            st.session_state[
-                "drift_report"
-            ] = report
+
+        # ----------------------------------------------------
+        # Clear previous drift-dependent artifacts
+        # ----------------------------------------------------
+
+        reset_from_drift()
+
+
+        # ----------------------------------------------------
+        # Store new drift report
+        # ----------------------------------------------------
+
+        st.session_state[
+            "drift_report"
+        ] = report
+
 
         st.rerun()

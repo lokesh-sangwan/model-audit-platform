@@ -4,18 +4,12 @@ from src.explainability.shap_explainer import (
     generate_shap_summary
 )
 
+from utils.session_manager import (
+    reset_from_explainability
+)
+
 
 st.title("Model Explainability")
-
-
-# =====================================================
-# CLEAN OLD SHAP STATE
-# =====================================================
-
-st.session_state.pop(
-    "shap_image",
-    None
-)
 
 
 # =====================================================
@@ -28,6 +22,7 @@ required_keys = [
     "X_test_processed",
     "preprocessor"
 ]
+
 
 missing_keys = [
     key
@@ -58,6 +53,7 @@ if (
         "SHAP explanation generated successfully."
     )
 
+
     if "shap_sample_size" in st.session_state:
 
         st.caption(
@@ -66,14 +62,19 @@ if (
             "test samples."
         )
 
+
     st.image(
         st.session_state["shap_image_bytes"],
         use_container_width=True
     )
 
+
     st.divider()
 
-    if st.button("🔄 Re-generate SHAP"):
+
+    if st.button(
+        "🔄 Re-generate SHAP"
+    ):
 
         with st.spinner(
             "Generating SHAP explanation..."
@@ -92,19 +93,35 @@ if (
                 st.session_state["X_test_processed"],
 
                 st.session_state["preprocessor"]
+
             )
 
-            st.session_state["shap_values"] = (
-                shap_values
-            )
 
-            st.session_state["shap_image_bytes"] = (
-                image_bytes
-            )
+        # ------------------------------------------------
+        # Clear old downstream explainability artifacts
+        # ------------------------------------------------
 
-            st.session_state["shap_sample_size"] = (
-                sample_size
-            )
+        reset_from_explainability()
+
+
+        # ------------------------------------------------
+        # Store new SHAP results
+        # ------------------------------------------------
+
+        st.session_state["shap_values"] = (
+            shap_values
+        )
+
+
+        st.session_state["shap_image_bytes"] = (
+            image_bytes
+        )
+
+
+        st.session_state["shap_sample_size"] = (
+            sample_size
+        )
+
 
         st.rerun()
 
@@ -119,11 +136,13 @@ else:
         "No explainability report has been generated yet."
     )
 
+
     st.write(
         "SHAP will analyze a representative sample "
         "of the test data to keep the application "
         "responsive."
     )
+
 
     if st.button(
         "Generate SHAP Explanation"
@@ -147,18 +166,27 @@ else:
                 st.session_state["X_test_processed"],
 
                 st.session_state["preprocessor"]
+
             )
 
-            st.session_state["shap_values"] = (
-                shap_values
-            )
 
-            st.session_state["shap_image_bytes"] = (
-                image_bytes
-            )
+        # ------------------------------------------------
+        # Store SHAP results
+        # ------------------------------------------------
 
-            st.session_state["shap_sample_size"] = (
-                sample_size
-            )
+        st.session_state["shap_values"] = (
+            shap_values
+        )
+
+
+        st.session_state["shap_image_bytes"] = (
+            image_bytes
+        )
+
+
+        st.session_state["shap_sample_size"] = (
+            sample_size
+        )
+
 
         st.rerun()

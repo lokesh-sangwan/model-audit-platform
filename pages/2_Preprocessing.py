@@ -2,6 +2,8 @@ import streamlit as st
 
 from src.preprocessing.splitter import split_dataset
 from src.preprocessing.processor import preprocess_data
+from src.validation.target_validator import validate_target
+from utils.session_manager import reset_from_preprocessing
 
 
 st.title("Data Preprocessing")
@@ -119,15 +121,19 @@ unique_values = target_data.nunique(
     dropna=True
 )
 
+
 st.write(
     f"**Selected target:** `{target_column}`"
 )
 
+
 col1, col2 = st.columns(2)
+
 
 col1.write(
     f"**Data type:** `{target_dtype}`"
 )
+
 
 col2.write(
     f"**Unique values:** `{unique_values}`"
@@ -138,80 +144,44 @@ col2.write(
 # TARGET VALIDATION
 # ============================================================
 
-target_valid = True
+validation_result = validate_target(
 
-target_error = None
+    df,
+
+    target_column,
+
+    problem_type
+
+)
 
 
-# ------------------------------------------------------------
-# Missing target values
-# ------------------------------------------------------------
+target_valid = validation_result[
+    "valid"
+]
 
-if target_data.isna().any():
 
-    target_valid = False
+# ============================================================
+# DISPLAY VALIDATION RESULT
+# ============================================================
 
-    target_error = (
-        "The selected target column contains missing "
-        "values. Please handle or remove missing target "
-        "values before training."
+if target_valid:
+
+    st.success(
+        validation_result["message"]
     )
 
+    for warning in validation_result[
+        "warnings"
+    ]:
 
-# ------------------------------------------------------------
-# Classification validation
-# ------------------------------------------------------------
-
-elif problem_type == "Classification":
-
-    if unique_values < 2:
-
-        target_valid = False
-
-        target_error = (
-            "Classification requires at least two target "
-            "classes."
+        st.warning(
+            warning
         )
 
-    elif unique_values >= len(target_data) * 0.5:
-
-        target_valid = False
-
-        target_error = (
-            "The selected target appears to contain too "
-            "many unique values for classification. "
-            "If this is a continuous numerical target, "
-            "select Regression instead."
-        )
-
-
-# ------------------------------------------------------------
-# Regression validation
-# ------------------------------------------------------------
-
-elif problem_type == "Regression":
-
-    if not (
-        target_data.dtype.kind
-        in "iuf"
-    ):
-
-        target_valid = False
-
-        target_error = (
-            "Regression requires a numerical target "
-            "column."
-        )
-
-
-# ============================================================
-# DISPLAY TARGET VALIDATION
-# ============================================================
-
-if not target_valid:
+else:
 
     st.error(
-        target_error
+        validation_result["message"]
     )
 
 
@@ -220,6 +190,18 @@ if not target_valid:
 # ============================================================
 
 def run_preprocessing():
+
+    # --------------------------------------------------------
+    # Clear everything derived from the previous
+    # preprocessing configuration
+    # --------------------------------------------------------
+
+    reset_from_preprocessing()
+
+
+    # --------------------------------------------------------
+    # Split dataset
+    # --------------------------------------------------------
 
     (
         X_train,
@@ -231,6 +213,11 @@ def run_preprocessing():
         target_column
     )
 
+
+    # --------------------------------------------------------
+    # Apply preprocessing
+    # --------------------------------------------------------
+
     (
         X_train_processed,
         X_test_processed,
@@ -240,6 +227,7 @@ def run_preprocessing():
         X_test
     )
 
+
     # --------------------------------------------------------
     # Store raw data for drift detection
     # --------------------------------------------------------
@@ -248,9 +236,11 @@ def run_preprocessing():
         "X_train_raw"
     ] = X_train.copy()
 
+
     st.session_state[
         "X_test_raw"
     ] = X_test.copy()
+
 
     # --------------------------------------------------------
     # Store processed data
@@ -260,9 +250,11 @@ def run_preprocessing():
         "X_train_processed"
     ] = X_train_processed
 
+
     st.session_state[
         "X_test_processed"
     ] = X_test_processed
+
 
     # --------------------------------------------------------
     # Store targets
@@ -272,9 +264,11 @@ def run_preprocessing():
         "y_train"
     ] = y_train
 
+
     st.session_state[
         "y_test"
     ] = y_test
+
 
     # --------------------------------------------------------
     # Store preprocessor
@@ -284,6 +278,7 @@ def run_preprocessing():
         "preprocessor"
     ] = preprocessor
 
+
     # --------------------------------------------------------
     # Store target column
     # --------------------------------------------------------
@@ -291,6 +286,7 @@ def run_preprocessing():
     st.session_state[
         "target_column"
     ] = target_column
+
 
     # --------------------------------------------------------
     # Store problem type
@@ -300,64 +296,16 @@ def run_preprocessing():
         "problem_type"
     ] = problem_type
 
+
     # --------------------------------------------------------
-    # Clear downstream artifacts
+    # Store target validation warnings
     # --------------------------------------------------------
 
-    st.session_state.pop(
-        "trained_model",
-        None
-    )
-
-    st.session_state.pop(
-        "model_name",
-        None
-    )
-
-    st.session_state.pop(
-        "evaluation",
-        None
-    )
-
-    st.session_state.pop(
-        "evaluation_metrics",
-        None
-    )
-
-    st.session_state.pop(
-        "predictions",
-        None
-    )
-
-    st.session_state.pop(
-        "shap_values",
-        None
-    )
-
-    st.session_state.pop(
-        "shap_image_bytes",
-        None
-    )
-
-    st.session_state.pop(
-        "shap_sample_size",
-        None
-    )
-
-    st.session_state.pop(
-        "drift_report",
-        None
-    )
-
-    st.session_state.pop(
-        "deployment_decision",
-        None
-    )
-
-    st.session_state.pop(
-        "audit_report",
-        None
-    )
+    st.session_state[
+        "target_validation_warnings"
+    ] = validation_result[
+        "warnings"
+    ]
 
 
 # ============================================================
@@ -370,6 +318,7 @@ if "X_train_processed" in st.session_state:
 
     st.divider()
 
+
     if st.button(
         "🔄 Re-run Preprocessing"
     ):
@@ -377,17 +326,20 @@ if "X_train_processed" in st.session_state:
         if not target_valid:
 
             st.error(
-                "Please select a valid target and problem "
-                "type before running preprocessing."
+                "Please correct the target selection "
+                "before running preprocessing."
             )
 
             st.stop()
 
+
         run_preprocessing()
+
 
         st.success(
             "Preprocessing completed again."
         )
+
 
         st.rerun()
 
@@ -402,6 +354,7 @@ else:
         "Dataset has not been preprocessed yet."
     )
 
+
     if st.button(
         "Run Preprocessing"
     ):
@@ -415,10 +368,13 @@ else:
 
             st.stop()
 
+
         run_preprocessing()
+
 
         st.success(
             "Preprocessing completed successfully."
         )
+
 
         st.rerun()

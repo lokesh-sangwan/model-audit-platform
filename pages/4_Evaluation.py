@@ -12,6 +12,10 @@ from src.visualization.confusion_matrix import (
     create_confusion_matrix_plot
 )
 
+from utils.session_manager import (
+    reset_from_evaluation
+)
+
 
 st.title("Model Evaluation")
 
@@ -170,6 +174,17 @@ def run_evaluation():
         )
 
 
+    # --------------------------------------------------------
+    # Clear previous evaluation and downstream artifacts
+    # --------------------------------------------------------
+
+    reset_from_evaluation()
+
+
+    # --------------------------------------------------------
+    # Store new evaluation
+    # --------------------------------------------------------
+
     st.session_state["evaluation"] = {
 
         "metrics": metrics,
@@ -178,6 +193,8 @@ def run_evaluation():
 
     }
 
+
+    st.session_state["evaluation_metrics"] = metrics
 
     st.session_state["predictions"] = predictions
 
@@ -191,6 +208,7 @@ if "evaluation" in st.session_state:
     display_results()
 
     st.divider()
+
 
     if st.button(
         "🔄 Re-run Evaluation"

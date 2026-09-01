@@ -8,6 +8,10 @@ from src.decision.decision_engine import (
     DRIFT_BLOCK_THRESHOLD
 )
 
+from utils.session_manager import (
+    reset_from_decision
+)
+
 
 st.title(
     "Deployment Recommendation"
@@ -173,6 +177,7 @@ if "deployment_decision" not in st.session_state:
         "No deployment recommendation has been generated yet."
     )
 
+
     if st.button(
         "Generate Deployment Recommendation"
     ):
@@ -197,9 +202,11 @@ if "deployment_decision" not in st.session_state:
 
             )
 
-            st.session_state[
-                "deployment_decision"
-            ] = decision
+
+        st.session_state[
+            "deployment_decision"
+        ] = decision
+
 
         st.rerun()
 
@@ -213,6 +220,7 @@ else:
     decision = st.session_state[
         "deployment_decision"
     ]
+
 
     decision_name = decision[
         "decision"
@@ -256,6 +264,7 @@ else:
         f"{decision['severity']}"
     )
 
+
     st.divider()
 
 
@@ -267,6 +276,7 @@ else:
         "Model Performance"
     )
 
+
     metrics = st.session_state[
         "evaluation"
     ]["metrics"]
@@ -276,10 +286,12 @@ else:
 
         col1, col2 = st.columns(2)
 
+
         col1.metric(
             "Accuracy",
             f"{metrics['accuracy']:.3f}"
         )
+
 
         col2.metric(
             "Precision",
@@ -289,29 +301,35 @@ else:
 
         col3, col4 = st.columns(2)
 
+
         col3.metric(
             "Recall",
             f"{metrics['recall']:.3f}"
         )
+
 
         col4.metric(
             "F1 Score",
             f"{metrics['f1_score']:.3f}"
         )
 
+
     else:
 
         col1, col2, col3 = st.columns(3)
+
 
         col1.metric(
             "MAE",
             f"{metrics['mae']:.3f}"
         )
 
+
         col2.metric(
             "RMSE",
             f"{metrics['rmse']:.3f}"
         )
+
 
         col3.metric(
             "R² Score",
@@ -326,6 +344,7 @@ else:
     st.subheader(
         "Data Drift"
     )
+
 
     drift_report = st.session_state[
         "drift_report"
@@ -420,8 +439,21 @@ else:
 
             )
 
-            st.session_state[
-                "deployment_decision"
-            ] = decision
+
+        # ----------------------------------------------------
+        # Clear previous decision and audit
+        # ----------------------------------------------------
+
+        reset_from_decision()
+
+
+        # ----------------------------------------------------
+        # Store new decision
+        # ----------------------------------------------------
+
+        st.session_state[
+            "deployment_decision"
+        ] = decision
+
 
         st.rerun()

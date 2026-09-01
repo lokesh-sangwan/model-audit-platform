@@ -2,6 +2,7 @@ import streamlit as st
 
 from src.training.model_factory import get_model
 from src.training.trainer import train_model
+from utils.session_manager import reset_from_model
 
 
 st.title(
@@ -80,11 +81,8 @@ else:
 
 
 model_name = st.selectbox(
-
     "Model",
-
     model_options
-
 )
 
 
@@ -122,7 +120,14 @@ if st.button(
 
 
         # ----------------------------------------------------
-        # Store trained model
+        # Clear previous model-dependent artifacts
+        # ----------------------------------------------------
+
+        reset_from_model()
+
+
+        # ----------------------------------------------------
+        # Store new trained model
         # ----------------------------------------------------
 
         st.session_state[
@@ -138,56 +143,6 @@ if st.button(
         st.session_state[
             "problem_type"
         ] = problem_type
-
-
-        # ----------------------------------------------------
-        # Remove downstream artifacts
-        # ----------------------------------------------------
-
-        st.session_state.pop(
-            "evaluation",
-            None
-        )
-
-        st.session_state.pop(
-            "evaluation_metrics",
-            None
-        )
-
-        st.session_state.pop(
-            "predictions",
-            None
-        )
-
-        st.session_state.pop(
-            "shap_values",
-            None
-        )
-
-        st.session_state.pop(
-            "shap_image_bytes",
-            None
-        )
-
-        st.session_state.pop(
-            "shap_sample_size",
-            None
-        )
-
-        st.session_state.pop(
-            "drift_report",
-            None
-        )
-
-        st.session_state.pop(
-            "deployment_decision",
-            None
-        )
-
-        st.session_state.pop(
-            "audit_report",
-            None
-        )
 
 
         st.success(

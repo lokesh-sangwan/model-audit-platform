@@ -32,5 +32,39 @@
                 ]
             }
         }
+    },
+    {
+        "audit_id": "20260901162906878933",
+        "audit_report": {
+            "audit_metadata": {
+                "dataset_name": "Titanic-Dataset.csv",
+                "model_name": "Decision Tree",
+                "problem_type": "Classification",
+                "generated_at": "2026-09-01T16:29:01"
+            },
+            "model_performance": {
+                "accuracy": 0.7877094972067039,
+                "precision": 0.7886972135551222,
+                "recall": 0.7877094972067039,
+                "f1_score": 0.7881041398080505
+            },
+            "data_drift": {
+                "total_features": 7,
+                "drifted_features": 0,
+                "drift_percentage": 0.0,
+                "overall_drift": false
+            },
+            "explainability": {
+                "available": true
+            },
+            "deployment_recommendation": {
+                "decision": "MONITOR",
+                "severity": "Warning",
+                "reasons": [
+                    "The following metrics are below the 80% deployment threshold: accuracy, precision, recall, f1_score"
+                ]
+            },
+            "problem_type": "Classification"
+        }
     }
 ]
