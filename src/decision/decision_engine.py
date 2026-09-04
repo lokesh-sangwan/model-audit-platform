@@ -2,11 +2,13 @@
 # DECISION ENGINE
 # ============================================================
 
-DEPLOY_THRESHOLD = 0.80
-MONITOR_THRESHOLD = 0.60
+from src.config.settings import settings
 
-DRIFT_MONITOR_THRESHOLD = 0.20
-DRIFT_BLOCK_THRESHOLD = 0.50
+DEPLOY_THRESHOLD = settings.deploy_threshold
+MONITOR_THRESHOLD = settings.monitor_threshold
+
+DRIFT_MONITOR_THRESHOLD = settings.drift_monitor_threshold
+DRIFT_BLOCK_THRESHOLD = settings.drift_block_threshold
 
 
 # ============================================================

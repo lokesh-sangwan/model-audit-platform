@@ -1,3 +1,4 @@
+from src.config.settings import settings
 import numpy as np
 import pandas as pd
 
@@ -11,10 +12,9 @@ from scipy.stats import ks_2samp
 HIGH_CARDINALITY_THRESHOLD = 0.5
 HIGH_MISSINGNESS_THRESHOLD = 0.5
 
-NUMERIC_DRIFT_THRESHOLD = 0.10
-CATEGORICAL_DRIFT_THRESHOLD = 0.10
-
-OVERALL_DRIFT_THRESHOLD = 0.20
+NUMERIC_DRIFT_THRESHOLD = settings.drift_monitor_threshold
+CATEGORICAL_DRIFT_THRESHOLD = settings.drift_monitor_threshold
+OVERALL_DRIFT_THRESHOLD = settings.drift_monitor_threshold
 
 
 # ============================================================

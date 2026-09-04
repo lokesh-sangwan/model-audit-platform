@@ -1,3 +1,5 @@
+from src.config.settings import settings
+
 from sklearn.linear_model import (
     LogisticRegression,
     LinearRegression
@@ -38,11 +40,11 @@ def get_model(
         ),
 
         "Decision Tree": DecisionTreeClassifier(
-            random_state=42
+            random_state=settings.random_state
         ),
 
         "Random Forest": RandomForestClassifier(
-            random_state=42
+            random_state=settings.random_state
         ),
 
 
@@ -53,11 +55,11 @@ def get_model(
         "Linear Regression": LinearRegression(),
 
         "Decision Tree Regressor": DecisionTreeRegressor(
-            random_state=42
+            random_state=settings.random_state
         ),
 
         "Random Forest Regressor": RandomForestRegressor(
-            random_state=42
+            random_state=settings.random_state
         )
 
     }

@@ -1,3 +1,4 @@
+from src.config.settings import settings
 from sklearn.model_selection import train_test_split
 import pandas as pd
 
@@ -5,8 +6,8 @@ import pandas as pd
 def split_dataset(
     df: pd.DataFrame,
     target_column: str,
-    test_size: float = 0.2,
-    random_state: int = 42
+    test_size = settings.test_size,
+    random_state = settings.random_state
 ):
     """
     Splits dataset into training and testing sets.

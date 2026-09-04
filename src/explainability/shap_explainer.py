@@ -14,8 +14,10 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.linear_model import LogisticRegression
 
+from src.config.settings import settings
 
-MAX_EXPLANATION_SAMPLES = 50
+
+MAX_EXPLANATION_SAMPLES = settings.shap_sample_size
 
 
 def _to_dense(data):
@@ -128,8 +130,8 @@ def generate_shap_summary(
     Generate a SHAP summary explanation.
 
     To keep the application responsive, SHAP is calculated
-    on a reproducible sample of the test set rather than
-    the entire test set.
+    on a configurable, reproducible sample of the test set
+    rather than the entire test set.
     """
 
     # -------------------------------------------------
